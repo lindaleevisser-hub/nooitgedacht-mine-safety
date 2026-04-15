@@ -1,0 +1,1316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nooitgedacht Mine Safety</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --coal: #1a1a1e;
+    --steel: #2c2f3a;
+    --ore: #3d4251;
+    --gold: #e8a020;
+    --gold-light: #f5c254;
+    --danger: #e03030;
+    --event: #f5c6d0;
+    --progress: #f5c842;
+    --done: #4caf50;
+    --text: #f0ede8;
+    --text-muted: #9a9590;
+    --border: rgba(255,255,255,0.08);
+    --card: rgba(44,47,58,0.95);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Barlow', sans-serif;
+    background: var(--coal);
+    color: var(--text);
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* HEADER */
+  header {
+    background: var(--steel);
+    border-bottom: 2px solid var(--gold);
+    padding: 0 16px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+    z-index: 1000;
+  }
+  .header-left { display: flex; align-items: center; gap: 12px; }
+  .mine-icon {
+    width: 36px; height: 36px;
+    background: var(--gold);
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+  }
+  header h1 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--text);
+  }
+  header h1 span { color: var(--gold); }
+  .header-right { display: flex; align-items: center; gap: 8px; }
+
+  .btn {
+    padding: 7px 14px;
+    border-radius: 6px;
+    border: none;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .btn-gold { background: var(--gold); color: var(--coal); }
+  .btn-gold:hover { background: var(--gold-light); }
+  .btn-outline { background: transparent; color: var(--text); border: 1px solid var(--border); }
+  .btn-outline:hover { border-color: var(--gold); color: var(--gold); }
+  .btn-danger { background: var(--danger); color: white; }
+  .btn-danger:hover { background: #c02020; }
+  .btn-green { background: var(--done); color: white; }
+  .btn-whatsapp { background: #25d366; color: white; }
+
+  #shift-badge {
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    border: none;
+  }
+  .shift-day { background: #fff3cd; color: #856404; }
+  .shift-night { background: #2c3e50; color: #adb5bd; }
+
+  /* MAIN LAYOUT */
+  .main { display: flex; flex: 1; overflow: hidden; }
+
+  /* SIDEBAR */
+  #sidebar {
+    width: 320px;
+    background: var(--steel);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    overflow: hidden;
+  }
+
+  .sidebar-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .tab-btn {
+    flex: 1;
+    padding: 10px 4px;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+  }
+  .tab-btn.active { color: var(--gold); border-bottom-color: var(--gold); }
+  .tab-btn:hover:not(.active) { color: var(--text); }
+
+  .tab-content { display: none; flex: 1; overflow-y: auto; padding: 12px; }
+  .tab-content.active { display: flex; flex-direction: column; gap: 10px; }
+
+  /* INCIDENT CARDS */
+  .incident-card {
+    background: var(--ore);
+    border-radius: 8px;
+    padding: 12px;
+    border-left: 4px solid var(--border);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .incident-card:hover { background: #4a4f60; }
+  .incident-card.emergency { border-left-color: var(--danger); }
+  .incident-card.event { border-left-color: #d4a0b0; }
+  .incident-card.progress { border-left-color: var(--progress); }
+  .incident-card.done { border-left-color: var(--done); }
+
+  .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
+  .card-type {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  .card-time { font-size: 11px; color: var(--text-muted); }
+  .card-location { font-size: 13px; color: var(--gold); margin-bottom: 4px; }
+  .card-reporter { font-size: 12px; color: var(--text-muted); }
+  .card-desc { font-size: 12px; margin-top: 6px; color: var(--text); opacity: 0.8; }
+
+  .status-pill {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  .pill-emergency { background: rgba(224,48,48,0.2); color: #ff6b6b; }
+  .pill-event { background: rgba(245,198,208,0.2); color: #f5a0b8; }
+  .pill-progress { background: rgba(245,200,66,0.2); color: #f5c842; }
+  .pill-done { background: rgba(76,175,80,0.2); color: #81c784; }
+
+  /* MAP */
+  #map { flex: 1; }
+
+  /* FORMS */
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+  .form-group label {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .form-group input, .form-group select, .form-group textarea {
+    background: var(--ore);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: 'Barlow', sans-serif;
+    font-size: 14px;
+    padding: 8px 12px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+    border-color: var(--gold);
+  }
+  .form-group select option { background: var(--steel); }
+  .form-group textarea { resize: vertical; min-height: 70px; }
+
+  .form-section-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--gold);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 6px;
+    margin-bottom: 2px;
+  }
+
+  /* MODALS */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 2000;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--steel);
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    width: 100%;
+    max-width: 480px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  }
+  .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .modal-header h2 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  .modal-close {
+    background: none; border: none; color: var(--text-muted);
+    font-size: 22px; cursor: pointer; line-height: 1;
+  }
+  .modal-close:hover { color: var(--text); }
+  .modal-body { padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+  .modal-footer {
+    padding: 16px 20px;
+    border-top: 1px solid var(--border);
+    display: flex; gap: 8px; justify-content: flex-end;
+  }
+
+  /* PIN TYPE SELECTOR */
+  .pin-type-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+  .pin-type-btn {
+    padding: 10px 8px;
+    border-radius: 8px;
+    border: 2px solid var(--border);
+    background: var(--ore);
+    color: var(--text);
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s;
+  }
+  .pin-type-btn:hover, .pin-type-btn.selected {
+    border-color: var(--gold);
+    background: rgba(232,160,32,0.15);
+    color: var(--gold);
+  }
+
+  /* STATUS SELECTOR */
+  .status-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+  .status-sel-btn {
+    padding: 10px 8px;
+    border-radius: 8px;
+    border: 2px solid transparent;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s;
+    opacity: 0.7;
+  }
+  .status-sel-btn:hover, .status-sel-btn.selected { opacity: 1; border-width: 2px; }
+  .ssbtn-emergency { background: rgba(224,48,48,0.2); color: #ff6b6b; border-color: rgba(224,48,48,0.3); }
+  .ssbtn-emergency.selected { border-color: var(--danger); }
+  .ssbtn-event { background: rgba(245,198,208,0.2); color: #f5a0b8; border-color: rgba(245,198,208,0.3); }
+  .ssbtn-event.selected { border-color: #d4a0b0; }
+  .ssbtn-progress { background: rgba(245,200,66,0.2); color: #f5c842; border-color: rgba(245,200,66,0.3); }
+  .ssbtn-progress.selected { border-color: var(--progress); }
+  .ssbtn-done { background: rgba(76,175,80,0.2); color: #81c784; border-color: rgba(76,175,80,0.3); }
+  .ssbtn-done.selected { border-color: var(--done); }
+
+  /* LEGEND */
+  .legend-box {
+    background: var(--ore);
+    border-radius: 8px;
+    padding: 10px 12px;
+  }
+  .legend-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 8px;
+  }
+  .legend-item { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+  .legend-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+  .legend-label { font-size: 12px; color: var(--text-muted); }
+
+  /* STATS */
+  .stat-card {
+    background: var(--ore);
+    border-radius: 8px;
+    padding: 12px;
+    text-align: center;
+  }
+  .stat-num {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--gold);
+    line-height: 1;
+  }
+  .stat-label { font-size: 11px; color: var(--text-muted); margin-top: 3px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .stats-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 8px; }
+
+  /* MAP INSTRUCTION BANNER */
+  #map-instruction {
+    display: none;
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+    background: var(--gold);
+    color: var(--coal);
+    padding: 10px 20px;
+    border-radius: 30px;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    pointer-events: none;
+  }
+
+  /* LOGIN */
+  #login-screen {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: var(--coal);
+    z-index: 3000;
+    align-items: center;
+    justify-content: center;
+  }
+  #login-screen.open { display: flex; }
+  .login-card {
+    background: var(--steel);
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    padding: 40px;
+    width: 100%;
+    max-width: 380px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .login-logo {
+    text-align: center;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .login-logo span { color: var(--gold); }
+  .login-subtitle { text-align: center; font-size: 13px; color: var(--text-muted); margin-top: -10px; }
+
+  /* MAP OVERLAY */
+  .map-container { flex: 1; position: relative; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--ore); border-radius: 2px; }
+
+  /* Leaflet custom marker colours */
+  .pin-emergency { background: var(--danger) !important; }
+  .pin-event { background: #f5c6d0 !important; }
+  .pin-progress { background: var(--progress) !important; }
+  .pin-done { background: var(--done) !important; }
+
+  .custom-pin {
+    width: 28px;
+    height: 28px;
+    border-radius: 50% 50% 50% 0;
+    transform: rotate(-45deg);
+    border: 3px solid rgba(255,255,255,0.8);
+    box-shadow: 0 3px 10px rgba(0,0,0,0.4);
+  }
+
+  .section-divider {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+
+  /* Toast */
+  #toast {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 5000;
+    background: var(--steel);
+    border: 1px solid var(--gold);
+    color: var(--text);
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: 'Barlow', sans-serif;
+    transform: translateY(80px);
+    opacity: 0;
+    transition: all 0.3s;
+    pointer-events: none;
+  }
+  #toast.show { transform: translateY(0); opacity: 1; }
+
+  /* Responsive */
+  @media (max-width: 640px) {
+    #sidebar { width: 100%; position: absolute; bottom: 0; left: 0; right: 0; z-index: 500; height: 45vh; border-right: none; border-top: 2px solid var(--gold); }
+    .map-container { height: 55vh; }
+    .main { flex-direction: column-reverse; }
+  }
+
+  .shift-row { display: flex; gap: 8px; }
+  .shift-row .form-group { flex: 1; }
+
+  .map-tip {
+    font-size: 12px;
+    color: var(--text-muted);
+    background: var(--ore);
+    border-radius: 6px;
+    padding: 8px 12px;
+    border-left: 3px solid var(--gold);
+  }
+
+  .no-incidents {
+    text-align: center;
+    padding: 30px 20px;
+    color: var(--text-muted);
+    font-size: 13px;
+  }
+
+  .admin-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+  .admin-actions .btn { font-size: 12px; padding: 5px 10px; }
+
+  .month-label {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--gold);
+    text-align: center;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .breakdown-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .breakdown-table th {
+    text-align: left;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .breakdown-table td { padding: 6px 8px; border-bottom: 1px solid rgba(255,255,255,0.04); }
+  .breakdown-table tr:last-child td { border-bottom: none; }
+</style>
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div id="login-screen" class="open">
+  <div class="login-card">
+    <div>
+      <div class="login-logo">⛏ <span>Nooitgedacht</span></div>
+      <div class="login-subtitle">Mine Safety Management System</div>
+    </div>
+    <div class="form-group">
+      <label>Email</label>
+      <input type="email" id="login-email" placeholder="your@email.com">
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" id="login-password" placeholder="••••••••">
+    </div>
+    <button class="btn btn-gold" style="width:100%;justify-content:center;padding:12px;" onclick="doLogin()">
+      Sign In — Admin
+    </button>
+    <button class="btn btn-outline" style="width:100%;justify-content:center;padding:12px;" onclick="enterAsEmployee()">
+      Continue as Employee
+    </button>
+    <div id="login-error" style="color:#ff6b6b;font-size:13px;text-align:center;display:none;"></div>
+  </div>
+</div>
+
+<!-- HEADER -->
+<header>
+  <div class="header-left">
+    <div class="mine-icon">⛏</div>
+    <h1>Nooitgedacht <span>Mine Safety</span></h1>
+  </div>
+  <div class="header-right">
+    <button id="shift-badge" class="shift-day" onclick="toggleShift()">☀ Day Shift</button>
+    <button class="btn btn-gold" onclick="openReportModal()">+ Report Incident</button>
+    <button class="btn btn-outline" id="admin-btn" onclick="openAdminPanel()" style="display:none">⚙ Admin</button>
+    <button class="btn btn-outline" onclick="logout()" id="logout-btn" style="display:none">Sign Out</button>
+  </div>
+</header>
+
+<!-- MAIN -->
+<div class="main">
+  <!-- SIDEBAR -->
+  <div id="sidebar">
+    <div class="sidebar-tabs">
+      <button class="tab-btn active" onclick="showTab('incidents')">Incidents</button>
+      <button class="tab-btn" onclick="showTab('legend')">Legend</button>
+      <button class="tab-btn" onclick="showTab('stats')" id="stats-tab-btn">Stats</button>
+    </div>
+
+    <!-- INCIDENTS TAB -->
+    <div class="tab-content active" id="tab-incidents">
+      <div id="incident-list">
+        <div class="no-incidents">No incidents this month.<br>Tap <strong>+ Report Incident</strong> to log one.</div>
+      </div>
+    </div>
+
+    <!-- LEGEND TAB -->
+    <div class="tab-content" id="tab-legend">
+      <div class="legend-box">
+        <div class="legend-title">Pin Status</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--danger)"></div><span class="legend-label">Emergency — immediate action needed</span></div>
+        <div class="legend-item"><div class="legend-dot" style="background:#f5c6d0"></div><span class="legend-label">Event — reported, not urgent</span></div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--progress)"></div><span class="legend-label">In Progress — being attended to</span></div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--done)"></div><span class="legend-label">Done — resolved</span></div>
+      </div>
+      <div class="legend-box">
+        <div class="legend-title">Incident Types</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;">
+          <span style="background:var(--ore);padding:3px 8px;border-radius:4px;font-size:12px;">🛣 Roads</span>
+          <span style="background:var(--ore);padding:3px 8px;border-radius:4px;font-size:12px;">💧 Pumps</span>
+          <span style="background:var(--ore);padding:3px 8px;border-radius:4px;font-size:12px;">🚧 Signs</span>
+          <span style="background:var(--ore);padding:3px 8px;border-radius:4px;font-size:12px;">⛰ Highwall</span>
+          <span style="background:var(--ore);padding:3px 8px;border-radius:4px;font-size:12px;">🚨 Accident</span>
+          <span style="background:var(--ore);padding:3px 8px;border-radius:4px;font-size:12px;">⚠ Incident</span>
+          <span style="background:var(--ore);padding:3px 8px;border-radius:4px;font-size:12px;">📋 Other</span>
+        </div>
+      </div>
+      <div class="legend-box">
+        <div class="legend-title">Map Zones</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#5b8a52;border-radius:3px;"></div><span class="legend-label">Currently being mined</span></div>
+        <div class="legend-item"><div class="legend-dot" style="background:#c49a3c;border-radius:3px;"></div><span class="legend-label">Already mined out</span></div>
+        <div class="legend-item"><div class="legend-dot" style="background:#7a8c9e;border-radius:3px;"></div><span class="legend-label">Under rehab / not to be mined</span></div>
+        <div class="legend-item"><div class="legend-dot" style="background:#9e5c5c;border-radius:3px;"></div><span class="legend-label">Declared unmineable</span></div>
+      </div>
+      <div class="map-tip">
+        💡 Tap anywhere on the map to drop a pin when reporting an incident.
+      </div>
+    </div>
+
+    <!-- STATS TAB -->
+    <div class="tab-content" id="tab-stats">
+      <div class="month-label" id="stats-month-label">—</div>
+      <div class="stats-grid" id="stats-grid">
+        <div class="stat-card"><div class="stat-num" id="stat-total">0</div><div class="stat-label">Total</div></div>
+        <div class="stat-card"><div class="stat-num" id="stat-emergency" style="color:#ff6b6b">0</div><div class="stat-label">Emergency</div></div>
+        <div class="stat-card"><div class="stat-num" id="stat-open" style="color:#f5c842">0</div><div class="stat-label">Open</div></div>
+        <div class="stat-card"><div class="stat-num" id="stat-done" style="color:#81c784">0</div><div class="stat-label">Resolved</div></div>
+      </div>
+      <div class="legend-box">
+        <div class="legend-title">By Type</div>
+        <table class="breakdown-table" id="type-breakdown"></table>
+      </div>
+      <div class="legend-box">
+        <div class="legend-title">By Shift</div>
+        <table class="breakdown-table" id="shift-breakdown"></table>
+      </div>
+      <div class="legend-box">
+        <div class="legend-title">By Area</div>
+        <table class="breakdown-table" id="area-breakdown"></table>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;" id="stats-actions" style="display:none">
+        <button class="btn btn-gold" onclick="downloadCSV()" style="flex:1;justify-content:center;">⬇ Download CSV</button>
+        <button class="btn btn-whatsapp" onclick="whatsappReport()" style="flex:1;justify-content:center;">📱 WhatsApp</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAP -->
+  <div class="map-container">
+    <div id="map-instruction">📍 Tap on the map to place incident pin</div>
+    <div id="map"></div>
+  </div>
+</div>
+
+<!-- REPORT INCIDENT MODAL -->
+<div class="modal-overlay" id="report-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>🚨 Report Incident</h2>
+      <button class="modal-close" onclick="closeModal('report-modal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Your Name</label>
+        <input type="text" id="reporter-name" placeholder="Enter your full name">
+      </div>
+      <div class="shift-row">
+        <div class="form-group">
+          <label>Shift</label>
+          <select id="inc-shift">
+            <option value="day">☀ Day Shift</option>
+            <option value="night">🌙 Night Shift</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Status</label>
+          <select id="inc-status">
+            <option value="emergency">🔴 Emergency</option>
+            <option value="event">🩷 Event</option>
+            <option value="progress">🟡 In Progress</option>
+            <option value="done">🟢 Done</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Incident Type</label>
+        <select id="inc-type">
+          <option value="Roads">🛣 Roads</option>
+          <option value="Pumps">💧 Pumps</option>
+          <option value="Signs">🚧 Signs</option>
+          <option value="Highwall">⛰ Highwall</option>
+          <option value="Accident">🚨 Accident</option>
+          <option value="Incident">⚠ Incident</option>
+          <option value="Other">📋 Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Area / Zone</label>
+        <select id="inc-area">
+          <optgroup label="— Varkensvlei —">
+            <option>Varkensvlei – Wes 1</option>
+            <option>Varkensvlei – Wes 2</option>
+            <option>Varkensvlei – Wes 3</option>
+            <option>Varkensvlei – Wes 4</option>
+            <option>Varkensvlei – Wes 5</option>
+            <option>Varkensvlei – Wes 6</option>
+            <option>Varkensvlei – Wes 7</option>
+            <option>Varkensvlei – Wes 8</option>
+            <option>Varkensvlei – Wes 9</option>
+            <option>Varkensvlei – Wes 10</option>
+            <option>Varkensvlei – Wes 11</option>
+            <option>Varkensvlei – Wes 12</option>
+            <option>Varkensvlei – Wes 21</option>
+            <option>Varkensvlei – Wes 22</option>
+            <option>Varkensvlei – Wes 23</option>
+            <option>Varkensvlei – MG2 Panel 1</option>
+            <option>Varkensvlei – MG2 Panel 2</option>
+            <option>Varkensvlei – MG2 Panel 3</option>
+            <option>Varkensvlei – MG2 Panel 4</option>
+            <option>Varkensvlei – MG2 Panel 5</option>
+            <option>Varkensvlei – MG2 Panel 6</option>
+            <option>Varkensvlei – MG2 Panel 7</option>
+            <option>Varkensvlei – MG2 Panel 8</option>
+            <option>Varkensvlei – MG2 Panel 9</option>
+            <option>Varkensvlei – MG2 Panel 10</option>
+            <option>Varkensvlei – MG2 Panel 11</option>
+            <option>Varkensvlei – MG2 Panel 12</option>
+            <option>Varkensvlei – MG2 Panel 13</option>
+            <option>Varkensvlei – MG2 Panel 14</option>
+            <option>Varkensvlei – MG2 Panel 15</option>
+            <option>Varkensvlei – MG3 Panel 1</option>
+            <option>Varkensvlei – MG3 Panel 2</option>
+            <option>Varkensvlei – MG3 Panel 3</option>
+            <option>Varkensvlei – MG3 Panel 4</option>
+            <option>Varkensvlei – MG3 Panel 5</option>
+            <option>Varkensvlei – MG3 Panel 6</option>
+            <option>Varkensvlei – MG3 Panel 7</option>
+            <option>Varkensvlei – MG3 Panel 8</option>
+            <option>Varkensvlei – MG3 Panel 9</option>
+            <option>Varkensvlei – MG3 Panel 10</option>
+            <option>Varkensvlei – MG3 Panel 11</option>
+            <option>Varkensvlei – MG3 Panel 12</option>
+            <option>Varkensvlei – MG3 Panel 13</option>
+            <option>Varkensvlei – MG3 Panel 14</option>
+            <option>Varkensvlei – MG3 Panel 15</option>
+            <option>Varkensvlei – LG6</option>
+          </optgroup>
+          <optgroup label="— Nooitgedacht —">
+            <option>Nooitgedacht – Section 1</option>
+            <option>Nooitgedacht – Section 2</option>
+            <option>Nooitgedacht – Section 3</option>
+            <option>Nooitgedacht – Section 4</option>
+            <option>Nooitgedacht – Section 5</option>
+            <option>Nooitgedacht – Section 6</option>
+            <option>Nooitgedacht – Section 7</option>
+            <option>Nooitgedacht – Section 8</option>
+            <option>Nooitgedacht – Section 9</option>
+            <option>Nooitgedacht – Section 10</option>
+            <option>Nooitgedacht – Section 11</option>
+            <option>Nooitgedacht – Section 12</option>
+            <option>Nooitgedacht – Section 13</option>
+            <option>Nooitgedacht – Section 14</option>
+            <option>Nooitgedacht – Section 15</option>
+            <option>Nooitgedacht – LG5 Panel 1</option>
+            <option>Nooitgedacht – LG5 Panel 2</option>
+            <option>Nooitgedacht – LG5 Panel 3</option>
+            <option>Nooitgedacht – LG5 Panel 4</option>
+            <option>Nooitgedacht – LG5 Panel 5</option>
+            <option>Nooitgedacht – LG5 Panel 6</option>
+            <option>Nooitgedacht – LG5 Panel 7</option>
+            <option>Nooitgedacht – LG5 Panel 8</option>
+            <option>Nooitgedacht – LG5 Panel 9</option>
+            <option>Nooitgedacht – LG5 Panel 10</option>
+            <option>Nooitgedacht – LG5 Panel 11</option>
+            <option>Nooitgedacht – LG5 Panel 12</option>
+            <option>Nooitgedacht – LG5 Panel 13</option>
+            <option>Nooitgedacht – LG5 Panel 14</option>
+            <option>Nooitgedacht – LG5 Panel 15</option>
+            <option>Nooitgedacht – LG1 (Not yet mined)</option>
+            <option>Nooitgedacht – LG2 (Not yet mined)</option>
+            <option>Nooitgedacht – LG3 (Not yet mined)</option>
+            <option>Nooitgedacht – LG4 (In progress)</option>
+            <option>Nooitgedacht – LG7 (Unmineable)</option>
+            <option>Nooitgedacht – LG8 (Unmineable)</option>
+            <option>Nooitgedacht – LG9 (Unmineable)</option>
+            <option>Nooitgedacht – LG10 (Unmineable)</option>
+            <option>Nooitgedacht – LG11 (In progress)</option>
+            <option>Nooitgedacht – LG12 (In progress)</option>
+            <option>Nooitgedacht – LG13 (In progress)</option>
+          </optgroup>
+          <option value="Surface">Surface / General</option>
+          <option value="Other">Other Area</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Description</label>
+        <textarea id="inc-desc" placeholder="Describe what happened..."></textarea>
+      </div>
+      <div class="form-group">
+        <label>Message to Foreman (optional)</label>
+        <textarea id="inc-message" placeholder="Any specific message for your foreman..." style="min-height:50px;"></textarea>
+      </div>
+      <div class="map-tip">
+        📍 After submitting, tap on the map to place the pin at the exact location.
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('report-modal')">Cancel</button>
+      <button class="btn btn-danger" onclick="submitIncident()">Submit Incident</button>
+    </div>
+  </div>
+</div>
+
+<!-- VIEW INCIDENT MODAL -->
+<div class="modal-overlay" id="view-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="view-modal-title">Incident Details</h2>
+      <button class="modal-close" onclick="closeModal('view-modal')">×</button>
+    </div>
+    <div class="modal-body" id="view-modal-body"></div>
+    <div class="modal-footer" id="view-modal-footer"></div>
+  </div>
+</div>
+
+<!-- ADMIN PANEL MODAL -->
+<div class="modal-overlay" id="admin-modal">
+  <div class="modal" style="max-width:560px;">
+    <div class="modal-header">
+      <h2>⚙ Admin Panel</h2>
+      <button class="modal-close" onclick="closeModal('admin-modal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-section-title">Monthly Report</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn btn-gold" onclick="downloadCSV();closeModal('admin-modal')" style="flex:1;justify-content:center;">⬇ Download CSV Report</button>
+        <button class="btn btn-whatsapp" onclick="whatsappReport();closeModal('admin-modal')" style="flex:1;justify-content:center;">📱 WhatsApp Summary</button>
+      </div>
+      <div class="form-section-title">Admins</div>
+      <div id="admin-list" style="font-size:13px;color:var(--text-muted);display:flex;flex-direction:column;gap:4px;"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('admin-modal')">Close</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<!-- FIREBASE -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<!-- LEAFLET -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+// ===== FIREBASE CONFIG =====
+const firebaseConfig = {
+  apiKey: "AIzaSyDd_QyH5mqCshtukpRamkeA5hCmtxze104",
+  authDomain: "ahs-alert-sa.firebaseapp.com",
+  databaseURL: "https://ahs-alert-sa-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "ahs-alert-sa",
+  storageBucket: "ahs-alert-sa.appspot.com"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.database();
+
+// ===== ADMIN EMAILS =====
+const ADMINS = ['johanv@benhaus.co.za'];
+const ADMIN_PHONES = { 'johanv@benhaus.co.za': '27736819496' };
+
+// ===== STATE =====
+let currentUser = null;
+let isAdmin = false;
+let currentShift = 'day';
+let pendingIncident = null;
+let placingPin = false;
+let allIncidents = {};
+let markers = {};
+let map;
+
+// ===== INIT MAP =====
+function initMap() {
+  map = L.map('map', { zoomControl: true }).setView([-24.936669, 27.139005], 15);
+
+  L.tileLayer('https://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}', {
+    maxZoom: 20,
+    subdomains: ['mt0','mt1','mt2','mt3'],
+    attribution: '© Google Maps'
+  }).addTo(map);
+
+  // Zone overlays (placeholders — Johan can refine positions)
+  addZoneOverlays();
+
+  map.on('click', function(e) {
+    if (placingPin && pendingIncident) {
+      pendingIncident.lat = e.latlng.lat;
+      pendingIncident.lng = e.latlng.lng;
+      saveIncident(pendingIncident);
+      stopPlacingPin();
+    }
+  });
+}
+
+function addZoneOverlays() {
+  // Approximate zone boundaries — Johan can update these
+  // Varkensvlei (left/north section)
+  const varkensvlei = L.polygon([
+    [-24.928, 27.128], [-24.928, 27.148],
+    [-24.940, 27.148], [-24.940, 27.128]
+  ], { color: '#c49a3c', fillColor: '#c49a3c', fillOpacity: 0.15, weight: 2, dashArray: '6,4' }).addTo(map);
+  varkensvlei.bindTooltip('Varkensvlei', { permanent: true, direction: 'center', className: 'zone-label' });
+
+  // Nooitgedacht (right/south section)
+  const nooitgedacht = L.polygon([
+    [-24.940, 27.128], [-24.940, 27.155],
+    [-24.952, 27.155], [-24.952, 27.128]
+  ], { color: '#5b8a52', fillColor: '#5b8a52', fillOpacity: 0.15, weight: 2, dashArray: '6,4' }).addTo(map);
+  nooitgedacht.bindTooltip('Nooitgedacht', { permanent: true, direction: 'center', className: 'zone-label' });
+
+  // Boundary line between sections
+  L.polyline([[-24.928, 27.138], [-24.952, 27.138]], {
+    color: '#e8a020', weight: 2, dashArray: '8,6', opacity: 0.6
+  }).addTo(map).bindTooltip('Section boundary', { direction: 'right' });
+}
+
+// ===== PIN COLOURS =====
+const STATUS_COLORS = {
+  emergency: '#e03030',
+  event: '#f5c6d0',
+  progress: '#f5c842',
+  done: '#4caf50'
+};
+
+function createPinIcon(status) {
+  const color = STATUS_COLORS[status] || '#888';
+  return L.divIcon({
+    html: `<div style="width:24px;height:24px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:${color};border:3px solid rgba(255,255,255,0.9);box-shadow:0 2px 8px rgba(0,0,0,0.5);"></div>`,
+    iconSize: [24, 24],
+    iconAnchor: [12, 24],
+    className: ''
+  });
+}
+
+// ===== AUTH =====
+function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pass = document.getElementById('login-password').value;
+  const err = document.getElementById('login-error');
+  err.style.display = 'none';
+
+  auth.signInWithEmailAndPassword(email, pass)
+    .then(cred => {
+      currentUser = cred.user;
+      isAdmin = ADMINS.includes(email.toLowerCase());
+      enterApp(true);
+    })
+    .catch(e => {
+      err.textContent = 'Invalid email or password.';
+      err.style.display = 'block';
+    });
+}
+
+function enterAsEmployee() {
+  currentUser = null;
+  isAdmin = false;
+  enterApp(false);
+}
+
+function enterApp(admin) {
+  document.getElementById('login-screen').classList.remove('open');
+  if (admin) {
+    document.getElementById('admin-btn').style.display = '';
+    document.getElementById('logout-btn').style.display = '';
+    document.getElementById('stats-tab-btn').style.display = '';
+    showToast('Welcome, Johan! Admin access enabled.');
+  }
+  initMap();
+  loadIncidents();
+}
+
+function logout() {
+  auth.signOut().then(() => {
+    location.reload();
+  });
+}
+
+// ===== SHIFT TOGGLE =====
+function toggleShift() {
+  currentShift = currentShift === 'day' ? 'night' : 'day';
+  const btn = document.getElementById('shift-badge');
+  if (currentShift === 'day') {
+    btn.textContent = '☀ Day Shift';
+    btn.className = 'shift-day';
+    document.getElementById('inc-shift').value = 'day';
+  } else {
+    btn.textContent = '🌙 Night Shift';
+    btn.className = 'shift-night';
+    document.getElementById('inc-shift').value = 'night';
+  }
+}
+
+// ===== TABS =====
+function showTab(id) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  event.target.classList.add('active');
+  if (id === 'stats') updateStats();
+}
+
+// ===== MODALS =====
+function openReportModal() {
+  document.getElementById('inc-shift').value = currentShift;
+  document.getElementById('report-modal').classList.add('open');
+}
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+function openAdminPanel() {
+  const list = document.getElementById('admin-list');
+  list.innerHTML = ADMINS.map(e => `<div>✓ ${e}</div>`).join('');
+  document.getElementById('admin-modal').classList.add('open');
+}
+
+// ===== REPORT INCIDENT =====
+function submitIncident() {
+  const name = document.getElementById('reporter-name').value.trim();
+  if (!name) { showToast('Please enter your name!'); return; }
+
+  const inc = {
+    id: Date.now().toString(),
+    name,
+    shift: document.getElementById('inc-shift').value,
+    status: document.getElementById('inc-status').value,
+    type: document.getElementById('inc-type').value,
+    area: document.getElementById('inc-area').value,
+    desc: document.getElementById('inc-desc').value,
+    message: document.getElementById('inc-message').value,
+    timestamp: Date.now(),
+    month: getMonthKey(),
+    lat: null,
+    lng: null
+  };
+
+  pendingIncident = inc;
+  closeModal('report-modal');
+  startPlacingPin();
+}
+
+function startPlacingPin() {
+  placingPin = true;
+  document.getElementById('map-instruction').style.display = 'block';
+  map.getContainer().style.cursor = 'crosshair';
+}
+
+function stopPlacingPin() {
+  placingPin = false;
+  document.getElementById('map-instruction').style.display = 'none';
+  map.getContainer().style.cursor = '';
+}
+
+function saveIncident(inc) {
+  const ref = db.ref('mine_incidents/' + inc.month + '/' + inc.id);
+  ref.set(inc).then(() => {
+    showToast('✓ Incident reported successfully!');
+    // WhatsApp alert for emergency
+    if (inc.status === 'emergency') {
+      triggerEmergencyWhatsApp(inc);
+    }
+  });
+}
+
+// ===== LOAD INCIDENTS =====
+function loadIncidents() {
+  const month = getMonthKey();
+  db.ref('mine_incidents/' + month).on('value', snap => {
+    allIncidents = snap.val() || {};
+    renderIncidentList();
+    renderMapPins();
+  });
+}
+
+function renderIncidentList() {
+  const list = document.getElementById('incident-list');
+  const incs = Object.values(allIncidents).sort((a,b) => b.timestamp - a.timestamp);
+
+  if (!incs.length) {
+    list.innerHTML = '<div class="no-incidents">No incidents this month.<br>Tap <strong>+ Report Incident</strong> to log one.</div>';
+    return;
+  }
+
+  list.innerHTML = incs.map(inc => `
+    <div class="incident-card ${inc.status}" onclick="viewIncident('${inc.id}')">
+      <div class="card-header">
+        <div class="card-type">${getTypeEmoji(inc.type)} ${inc.type}</div>
+        <span class="status-pill pill-${inc.status}">${inc.status}</span>
+      </div>
+      <div class="card-location">📍 ${inc.area}</div>
+      <div class="card-reporter">👷 ${inc.name} · ${inc.shift === 'day' ? '☀' : '🌙'} ${inc.shift} shift · ${formatTime(inc.timestamp)}</div>
+      ${inc.desc ? `<div class="card-desc">${inc.desc}</div>` : ''}
+    </div>
+  `).join('');
+}
+
+function renderMapPins() {
+  // Clear existing markers
+  Object.values(markers).forEach(m => map.removeLayer(m));
+  markers = {};
+
+  Object.values(allIncidents).forEach(inc => {
+    if (inc.lat && inc.lng) {
+      const m = L.marker([inc.lat, inc.lng], { icon: createPinIcon(inc.status) })
+        .addTo(map)
+        .on('click', () => viewIncident(inc.id));
+
+      m.bindPopup(`
+        <div style="font-family:Barlow,sans-serif;min-width:180px;">
+          <strong>${getTypeEmoji(inc.type)} ${inc.type}</strong><br>
+          <span style="font-size:12px;color:#888;">${inc.area}</span><br>
+          <span style="font-size:12px;">👷 ${inc.name}</span><br>
+          <span style="font-size:11px;color:#aaa;">${formatTime(inc.timestamp)}</span>
+        </div>
+      `);
+
+      markers[inc.id] = m;
+    }
+  });
+}
+
+// ===== VIEW INCIDENT =====
+function viewIncident(id) {
+  const inc = allIncidents[id];
+  if (!inc) return;
+
+  document.getElementById('view-modal-title').textContent = `${getTypeEmoji(inc.type)} ${inc.type} — ${inc.area}`;
+
+  const body = document.getElementById('view-modal-body');
+  body.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <span class="status-pill pill-${inc.status}">${inc.status}</span>
+      <span style="font-size:12px;color:var(--text-muted);">${formatTime(inc.timestamp)}</span>
+    </div>
+    <div class="legend-box">
+      <div style="display:flex;flex-direction:column;gap:6px;font-size:13px;">
+        <div><span style="color:var(--text-muted);">Reporter:</span> ${inc.name}</div>
+        <div><span style="color:var(--text-muted);">Shift:</span> ${inc.shift === 'day' ? '☀ Day' : '🌙 Night'}</div>
+        <div><span style="color:var(--text-muted);">Area:</span> ${inc.area}</div>
+        <div><span style="color:var(--text-muted);">Type:</span> ${inc.type}</div>
+        ${inc.desc ? `<div><span style="color:var(--text-muted);">Description:</span> ${inc.desc}</div>` : ''}
+        ${inc.message ? `<div style="background:rgba(232,160,32,0.1);padding:8px;border-radius:6px;border-left:3px solid var(--gold);">
+          <div style="color:var(--gold);font-size:11px;font-weight:700;margin-bottom:3px;text-transform:uppercase;">Message to Foreman</div>
+          ${inc.message}
+        </div>` : ''}
+        ${inc.lat ? `<div><span style="color:var(--text-muted);">Location:</span> ${inc.lat.toFixed(5)}, ${inc.lng.toFixed(5)}</div>` : ''}
+      </div>
+    </div>
+    ${isAdmin ? `
+    <div>
+      <div class="form-section-title" style="margin-bottom:8px;">Update Status</div>
+      <div class="status-grid">
+        <button class="status-sel-btn ssbtn-emergency ${inc.status==='emergency'?'selected':''}" onclick="updateStatus('${id}','emergency')">🔴 Emergency</button>
+        <button class="status-sel-btn ssbtn-event ${inc.status==='event'?'selected':''}" onclick="updateStatus('${id}','event')">🩷 Event</button>
+        <button class="status-sel-btn ssbtn-progress ${inc.status==='progress'?'selected':''}" onclick="updateStatus('${id}','progress')">🟡 In Progress</button>
+        <button class="status-sel-btn ssbtn-done ${inc.status==='done'?'selected':''}" onclick="updateStatus('${id}','done')">🟢 Done</button>
+      </div>
+    </div>
+    ` : ''}
+  `;
+
+  const footer = document.getElementById('view-modal-footer');
+  footer.innerHTML = '';
+  if (inc.lat) {
+    const fb = document.createElement('button');
+    fb.className = 'btn btn-outline';
+    fb.textContent = '🗺 Focus on Map';
+    fb.onclick = () => { map.flyTo([inc.lat, inc.lng], 17); closeModal('view-modal'); };
+    footer.appendChild(fb);
+  }
+  if (isAdmin) {
+    const wb = document.createElement('button');
+    wb.className = 'btn btn-whatsapp';
+    wb.textContent = '📱 WhatsApp';
+    wb.onclick = () => shareWhatsApp(inc);
+    footer.appendChild(wb);
+  }
+
+  document.getElementById('view-modal').classList.add('open');
+}
+
+function updateStatus(id, status) {
+  const month = getMonthKey();
+  db.ref('mine_incidents/' + month + '/' + id + '/status').set(status).then(() => {
+    showToast('Status updated to: ' + status);
+    closeModal('view-modal');
+  });
+}
+
+// ===== STATS =====
+function updateStats() {
+  const incs = Object.values(allIncidents);
+  const month = new Date();
+  document.getElementById('stats-month-label').textContent =
+    month.toLocaleString('default', { month: 'long', year: 'numeric' }).toUpperCase();
+
+  document.getElementById('stat-total').textContent = incs.length;
+  document.getElementById('stat-emergency').textContent = incs.filter(i=>i.status==='emergency').length;
+  document.getElementById('stat-open').textContent = incs.filter(i=>i.status!=='done').length;
+  document.getElementById('stat-done').textContent = incs.filter(i=>i.status==='done').length;
+
+  // By type
+  const byType = {};
+  incs.forEach(i => { byType[i.type] = (byType[i.type]||0)+1; });
+  document.getElementById('type-breakdown').innerHTML =
+    '<tr><th>Type</th><th>Count</th></tr>' +
+    Object.entries(byType).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<tr><td>${getTypeEmoji(k)} ${k}</td><td>${v}</td></tr>`).join('');
+
+  // By shift
+  const byShift = { day: 0, night: 0 };
+  incs.forEach(i => { if(i.shift) byShift[i.shift]++; });
+  document.getElementById('shift-breakdown').innerHTML =
+    '<tr><th>Shift</th><th>Count</th></tr>' +
+    `<tr><td>☀ Day</td><td>${byShift.day}</td></tr><tr><td>🌙 Night</td><td>${byShift.night}</td></tr>`;
+
+  // By area (top 5)
+  const byArea = {};
+  incs.forEach(i => { byArea[i.area] = (byArea[i.area]||0)+1; });
+  document.getElementById('area-breakdown').innerHTML =
+    '<tr><th>Area</th><th>Count</th></tr>' +
+    Object.entries(byArea).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([k,v])=>`<tr><td>${k}</td><td>${v}</td></tr>`).join('');
+
+  if (isAdmin) {
+    document.getElementById('stats-actions').style.display = 'flex';
+  }
+}
+
+// ===== DOWNLOAD CSV =====
+function downloadCSV() {
+  const incs = Object.values(allIncidents);
+  const headers = ['Date','Time','Reporter','Shift','Status','Type','Area','Description','Message to Foreman','Lat','Lng'];
+  const rows = incs.map(i => [
+    new Date(i.timestamp).toLocaleDateString(),
+    new Date(i.timestamp).toLocaleTimeString(),
+    i.name, i.shift, i.status, i.type, i.area,
+    `"${(i.desc||'').replace(/"/g,'""')}"`,
+    `"${(i.message||'').replace(/"/g,'""')}"`,
+    i.lat||'', i.lng||''
+  ]);
+  const csv = [headers, ...rows].map(r => r.join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `NooitgedachtSafety_${getMonthKey()}.csv`;
+  a.click();
+  showToast('CSV downloaded!');
+}
+
+// ===== WHATSAPP =====
+function whatsappReport() {
+  const incs = Object.values(allIncidents);
+  const month = new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
+  const emergency = incs.filter(i=>i.status==='emergency').length;
+  const open = incs.filter(i=>i.status!=='done').length;
+  const msg = `⛏ *Nooitgedacht Mine Safety Report*\n${month}\n\nTotal incidents: ${incs.length}\n🔴 Emergency: ${emergency}\n🟡 Open: ${open}\n🟢 Resolved: ${incs.filter(i=>i.status==='done').length}\n\nDownload full report from the app.`;
+  const phone = ADMIN_PHONES['johanv@benhaus.co.za'];
+  window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
+}
+
+function triggerEmergencyWhatsApp(inc) {
+  const msg = `🚨 *EMERGENCY INCIDENT — Nooitgedacht Mine*\n\nType: ${inc.type}\nArea: ${inc.area}\nReported by: ${inc.name}\nShift: ${inc.shift}\n\n${inc.desc}\n\n${inc.message ? 'Message: ' + inc.message : ''}`;
+  const phone = ADMIN_PHONES['johanv@benhaus.co.za'];
+  window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
+}
+
+function shareWhatsApp(inc) {
+  const msg = `⛏ *Mine Incident Update*\n\n${getTypeEmoji(inc.type)} *${inc.type}* — ${inc.status.toUpperCase()}\n📍 ${inc.area}\n👷 ${inc.name} (${inc.shift} shift)\n\n${inc.desc}`;
+  const phone = ADMIN_PHONES['johanv@benhaus.co.za'];
+  window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
+}
+
+// ===== UTILS =====
+function getMonthKey() {
+  const d = new Date();
+  return `${d.getFullYear()}_${String(d.getMonth()+1).padStart(2,'0')}`;
+}
+
+function formatTime(ts) {
+  const d = new Date(ts);
+  return d.toLocaleDateString('en-ZA') + ' ' + d.toLocaleTimeString('en-ZA', {hour:'2-digit',minute:'2-digit'});
+}
+
+function getTypeEmoji(type) {
+  const map = { Roads:'🛣', Pumps:'💧', Signs:'🚧', Highwall:'⛰', Accident:'🚨', Incident:'⚠', Other:'📋' };
+  return map[type] || '📋';
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ===== ZONE LABEL STYLE =====
+const style = document.createElement('style');
+style.textContent = `.zone-label { background: rgba(26,26,30,0.85); color: #e8a020; border: 1px solid rgba(232,160,32,0.3); border-radius: 4px; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 0.05em; text-transform: uppercase; padding: 3px 8px !important; white-space: nowrap; }`;
+document.head.appendChild(style);
+</script>
+</body>
+</html>
