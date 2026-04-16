@@ -1352,9 +1352,24 @@ function viewIncident(id) {
     wb.textContent = '📱 WhatsApp';
     wb.onclick = () => shareWhatsApp(inc);
     footer.appendChild(wb);
+
+    const db_btn = document.createElement('button');
+    db_btn.className = 'btn btn-danger';
+    db_btn.textContent = '🗑 Delete';
+    db_btn.onclick = () => deleteIncident(inc.id);
+    footer.appendChild(db_btn);
   }
 
   document.getElementById('view-modal').classList.add('open');
+}
+
+function deleteIncident(id) {
+  if (!confirm('Are you sure you want to delete this incident? This cannot be undone.')) return;
+  const month = getMonthKey();
+  db.ref('mine_incidents/' + month + '/' + id).remove().then(() => {
+    showToast('Incident deleted.');
+    closeModal('view-modal');
+  });
 }
 
 function updateStatus(id, status) {
