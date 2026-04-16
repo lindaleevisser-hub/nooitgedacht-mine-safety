@@ -923,6 +923,7 @@ const db = firebase.database();
 // ===== ADMIN EMAILS =====
 // ===== ADMIN CONFIG (stored in Firebase by Johan) =====
 const SUPER_ADMIN = 'oubaasvisser1979@gmail.com';
+const ADMIN_PHONES = { 'oubaasvisser1979@gmail.com': '27736819496' };
 let adminList = []; // loaded from Firebase
 
 function loadAdminList() {
@@ -1094,7 +1095,7 @@ function doLogin() {
   auth.signInWithEmailAndPassword(email, pass)
     .then(cred => {
       currentUser = cred.user;
-      isAdmin = ADMINS.includes(email.toLowerCase());
+      isAdmin = email.toLowerCase() === SUPER_ADMIN;
       enterApp(true);
     })
     .catch(e => {
