@@ -922,7 +922,7 @@ const db = firebase.database();
 
 // ===== ADMIN EMAILS =====
 // ===== ADMIN CONFIG (stored in Firebase by Johan) =====
-const SUPER_ADMIN = 'johanv@benhaus.co.za';
+const SUPER_ADMIN = 'oubaasvisser1979@gmail.com';
 let adminList = []; // loaded from Firebase
 
 function loadAdminList() {
@@ -1436,19 +1436,19 @@ function whatsappReport() {
   const emergency = incs.filter(i=>i.status==='emergency').length;
   const open = incs.filter(i=>i.status!=='done').length;
   const msg = `⛏ *Nooitgedacht Mine Safety Report*\n${month}\n\nTotal incidents: ${incs.length}\n🔴 Emergency: ${emergency}\n🟡 Open: ${open}\n🟢 Resolved: ${incs.filter(i=>i.status==='done').length}\n\nDownload full report from the app.`;
-  const phone = ADMIN_PHONES['johanv@benhaus.co.za'];
+  const phone = ADMIN_PHONES['oubaasvisser1979@gmail.com'];
   window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
 }
 
 function triggerEmergencyWhatsApp(inc) {
   const msg = `🚨 *EMERGENCY INCIDENT — Nooitgedacht Mine*\n\nType: ${inc.type}\nArea: ${inc.area}\nReported by: ${inc.name}\nShift: ${inc.shift}\n\n${inc.desc}\n\n${inc.message ? 'Message: ' + inc.message : ''}`;
-  const phone = ADMIN_PHONES['johanv@benhaus.co.za'];
+  const phone = ADMIN_PHONES['oubaasvisser1979@gmail.com'];
   window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
 }
 
 function shareWhatsApp(inc) {
   const msg = `⛏ *Mine Incident Update*\n\n${getTypeEmoji(inc.type)} *${inc.type}* — ${inc.status.toUpperCase()}\n📍 ${inc.area}\n👷 ${inc.name} (${inc.shift} shift)\n\n${inc.desc}`;
-  const phone = ADMIN_PHONES['johanv@benhaus.co.za'];
+  const phone = ADMIN_PHONES['oubaasvisser1979@gmail.com'];
   window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
 }
 
