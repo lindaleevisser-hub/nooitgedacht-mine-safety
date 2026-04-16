@@ -829,19 +829,66 @@
 
 <!-- ADMIN PANEL MODAL -->
 <div class="modal-overlay" id="admin-modal">
-  <div class="modal" style="max-width:560px;">
+  <div class="modal" style="max-width:580px;">
     <div class="modal-header">
       <h2>⚙ Admin Panel</h2>
       <button class="modal-close" onclick="closeModal('admin-modal')">×</button>
     </div>
     <div class="modal-body">
+
       <div class="form-section-title">Monthly Report</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
-        <button class="btn btn-gold" onclick="downloadCSV();closeModal('admin-modal')" style="flex:1;justify-content:center;">⬇ Download CSV Report</button>
+        <button class="btn btn-gold" onclick="downloadCSV();closeModal('admin-modal')" style="flex:1;justify-content:center;">⬇ Download CSV</button>
         <button class="btn btn-whatsapp" onclick="whatsappReport();closeModal('admin-modal')" style="flex:1;justify-content:center;">📱 WhatsApp Summary</button>
       </div>
-      <div class="form-section-title">Admins</div>
-      <div id="admin-list" style="font-size:13px;color:var(--text-muted);display:flex;flex-direction:column;gap:4px;"></div>
+
+      <div class="form-section-title">EmailJS Setup
+        <span style="font-size:10px;font-weight:400;text-transform:none;color:var(--text-muted);margin-left:8px;">Required for automatic email alerts</span>
+      </div>
+      <div style="background:rgba(232,160,32,0.08);border:1px solid rgba(232,160,32,0.2);border-radius:8px;padding:12px;font-size:12px;color:var(--text-muted);line-height:1.7;">
+        <strong style="color:var(--gold);">One-time setup:</strong> Go to <a href="https://www.emailjs.com" target="_blank" style="color:var(--gold);">emailjs.com</a> → free account → create a Gmail service → create a template → paste your IDs below. Template variables: <code>{{to_email}}</code>, <code>{{to_name}}</code>, <code>{{subject}}</code>, <code>{{message}}</code>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div class="form-group">
+          <label>EmailJS Service ID</label>
+          <input type="text" id="ejs-service" placeholder="e.g. service_abc123">
+        </div>
+        <div class="form-group">
+          <label>EmailJS Template ID</label>
+          <input type="text" id="ejs-template" placeholder="e.g. template_xyz789">
+        </div>
+        <div class="form-group">
+          <label>EmailJS Public Key</label>
+          <input type="text" id="ejs-pubkey" placeholder="e.g. abcXYZ123...">
+        </div>
+        <button class="btn btn-gold" onclick="saveEmailJSConfig()" style="align-self:flex-start;">Save EmailJS Config</button>
+        <div id="ejs-status" style="font-size:12px;color:var(--done);display:none;">✓ EmailJS configured — emails will send automatically!</div>
+      </div>
+
+      <div class="form-section-title">Manage Admins
+        <span style="font-size:10px;font-weight:400;text-transform:none;color:var(--text-muted);margin-left:8px;">Only Johan can add/remove</span>
+      </div>
+      <div id="admin-list" style="display:flex;flex-direction:column;gap:8px;"></div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px;background:var(--ore);border-radius:8px;padding:12px;">
+        <div style="font-family:Barlow Condensed,sans-serif;font-size:12px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--gold);">Add New Admin</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <input type="text" id="new-admin-name" placeholder="Full name" style="flex:1;background:var(--steel);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:Barlow,sans-serif;font-size:13px;padding:7px 10px;outline:none;min-width:120px;">
+          <input type="email" id="new-admin-email" placeholder="Email address" style="flex:2;background:var(--steel);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:Barlow,sans-serif;font-size:13px;padding:7px 10px;outline:none;min-width:160px;">
+          <input type="text" id="new-admin-phone" placeholder="Cell (27...)" style="flex:1;background:var(--steel);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:Barlow,sans-serif;font-size:13px;padding:7px 10px;outline:none;min-width:120px;">
+        </div>
+        <div style="font-family:Barlow Condensed,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--text-muted);margin-top:4px;">Notify for incident types:</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;">
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer;"><input type="checkbox" class="new-admin-type" value="Roads" checked> Roads</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer;"><input type="checkbox" class="new-admin-type" value="Pumps" checked> Pumps</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer;"><input type="checkbox" class="new-admin-type" value="Signs" checked> Signs</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer;"><input type="checkbox" class="new-admin-type" value="Highwall" checked> Highwall</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer;"><input type="checkbox" class="new-admin-type" value="Accident" checked> Accident</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer;"><input type="checkbox" class="new-admin-type" value="Incident" checked> Incident</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer;"><input type="checkbox" class="new-admin-type" value="Other" checked> Other</label>
+        </div>
+        <button class="btn btn-gold" onclick="addAdmin()" style="align-self:flex-start;">+ Add Admin</button>
+      </div>
+
     </div>
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal('admin-modal')">Close</button>
@@ -851,6 +898,8 @@
 
 <div id="toast"></div>
 
+<!-- EMAILJS -->
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <!-- FIREBASE -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -872,8 +921,89 @@ const auth = firebase.auth();
 const db = firebase.database();
 
 // ===== ADMIN EMAILS =====
-const ADMINS = ['johanv@benhaus.co.za'];
-const ADMIN_PHONES = { 'johanv@benhaus.co.za': '27736819496' };
+// ===== ADMIN CONFIG (stored in Firebase by Johan) =====
+const SUPER_ADMIN = 'johanv@benhaus.co.za';
+let adminList = []; // loaded from Firebase
+
+function loadAdminList() {
+  db.ref('mine_config/admins').on('value', snap => {
+    adminList = snap.val() ? Object.values(snap.val()) : [];
+    // Always ensure Johan is in the list
+    if (!adminList.find(a => a.email === SUPER_ADMIN)) {
+      adminList.unshift({ name: 'Johan Visser', email: SUPER_ADMIN, phone: '27736819496', types: ['Roads','Pumps','Signs','Highwall','Accident','Incident','Other'] });
+    }
+    if (document.getElementById('admin-modal').classList.contains('open')) renderAdminList();
+  });
+}
+
+function renderAdminList() {
+  const list = document.getElementById('admin-list');
+  if (!list) return;
+  if (!adminList.length) { list.innerHTML = '<div style="font-size:13px;color:var(--text-muted);">No admins yet.</div>'; return; }
+  list.innerHTML = adminList.map((a, i) => `
+    <div style="background:var(--ore);border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:4px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-family:Barlow Condensed,sans-serif;font-size:14px;font-weight:700;color:var(--gold);">${a.name} ${a.email===SUPER_ADMIN?'⭐':''}</span>
+        ${a.email !== SUPER_ADMIN ? `<button class="btn btn-outline" style="font-size:11px;padding:3px 8px;" onclick="removeAdmin('${a.email}')">Remove</button>` : ''}
+      </div>
+      <div style="font-size:12px;color:var(--text-muted);">📧 ${a.email} · 📱 ${a.phone||'—'}</div>
+      <div style="font-size:11px;color:var(--text-muted);">Notified for: ${(a.types||[]).join(', ')}</div>
+    </div>
+  `).join('');
+}
+
+function addAdmin() {
+  const name = document.getElementById('new-admin-name').value.trim();
+  const email = document.getElementById('new-admin-email').value.trim().toLowerCase();
+  const phone = document.getElementById('new-admin-phone').value.trim();
+  const types = [...document.querySelectorAll('.new-admin-type:checked')].map(c => c.value);
+  if (!name || !email) { showToast('Please enter name and email!'); return; }
+  const key = email.replace(/[.@]/g, '_');
+  db.ref('mine_config/admins/' + key).set({ name, email, phone, types }).then(() => {
+    showToast('✓ Admin added: ' + name);
+    document.getElementById('new-admin-name').value = '';
+    document.getElementById('new-admin-email').value = '';
+    document.getElementById('new-admin-phone').value = '';
+  });
+}
+
+function removeAdmin(email) {
+  if (email === SUPER_ADMIN) { showToast('Cannot remove super admin!'); return; }
+  const key = email.replace(/[.@]/g, '_');
+  db.ref('mine_config/admins/' + key).remove().then(() => showToast('Admin removed.'));
+}
+
+// ===== EMAILJS CONFIG =====
+let ejsConfig = null;
+
+function loadEmailJSConfig() {
+  db.ref('mine_config/emailjs').once('value', snap => {
+    if (snap.val()) {
+      ejsConfig = snap.val();
+      emailjs.init(ejsConfig.pubkey);
+      const s = document.getElementById('ejs-status');
+      if (s) { s.style.display = 'block'; }
+      const fields = ['service','template','pubkey'];
+      fields.forEach(f => {
+        const el = document.getElementById('ejs-' + f);
+        if (el) el.value = ejsConfig[f] || '';
+      });
+    }
+  });
+}
+
+function saveEmailJSConfig() {
+  const service = document.getElementById('ejs-service').value.trim();
+  const template = document.getElementById('ejs-template').value.trim();
+  const pubkey = document.getElementById('ejs-pubkey').value.trim();
+  if (!service || !template || !pubkey) { showToast('Please fill all three EmailJS fields!'); return; }
+  db.ref('mine_config/emailjs').set({ service, template, pubkey }).then(() => {
+    ejsConfig = { service, template, pubkey };
+    emailjs.init(pubkey);
+    document.getElementById('ejs-status').style.display = 'block';
+    showToast('✓ EmailJS config saved!');
+  });
+}
 
 // ===== STATE =====
 let currentUser = null;
@@ -989,6 +1119,8 @@ function enterApp(admin) {
   }
   initMap();
   loadIncidents();
+  loadAdminList();
+  loadEmailJSConfig();
 }
 
 function logout() {
@@ -1030,8 +1162,7 @@ function closeModal(id) {
   document.getElementById(id).classList.remove('open');
 }
 function openAdminPanel() {
-  const list = document.getElementById('admin-list');
-  list.innerHTML = ADMINS.map(e => `<div>✓ ${e}</div>`).join('');
+  renderAdminList();
   document.getElementById('admin-modal').classList.add('open');
 }
 
@@ -1076,10 +1207,41 @@ function saveIncident(inc) {
   const ref = db.ref('mine_incidents/' + inc.month + '/' + inc.id);
   ref.set(inc).then(() => {
     showToast('✓ Incident reported successfully!');
-    // WhatsApp alert for emergency
+    sendEmailAlerts(inc);
     if (inc.status === 'emergency') {
       triggerEmergencyWhatsApp(inc);
     }
+  });
+}
+
+function sendEmailAlerts(inc) {
+  if (!ejsConfig) return;
+  const statusEmoji = { emergency:'🔴', event:'🩷', progress:'🟡', done:'🟢' };
+  const subject = `${statusEmoji[inc.status]||'⚠'} Mine Incident: ${inc.type} — ${inc.area}`;
+  const message = `New incident reported at Nooitgedacht Mine.
+
+Type: ${inc.type}
+Status: ${inc.status.toUpperCase()}
+Area: ${inc.area}
+Reported by: ${inc.name}
+Shift: ${inc.shift === 'day' ? '☀ Day' : '🌙 Night'}
+Time: ${formatTime(inc.timestamp)}
+
+Description:
+${inc.desc || '(none)'}
+
+${inc.message ? 'Message to Foreman:\n' + inc.message : ''}
+
+View on map: https://lindaleevisser-hub.github.io/nooitgedacht-mine-safety/`;
+
+  const recipients = adminList.filter(a => !a.types || a.types.includes(inc.type));
+  recipients.forEach(admin => {
+    emailjs.send(ejsConfig.service, ejsConfig.template, {
+      to_email: admin.email,
+      to_name: admin.name,
+      subject,
+      message
+    }).catch(e => console.warn('Email failed for', admin.email, e));
   });
 }
 
